@@ -5,7 +5,7 @@
 </p>
 
 <p align="center">
-  <b>A lightweight, blazing-fast Postman alternative crafted in Rust with a Zed-inspired minimalist UI.</b>
+  <b>A lightweight, blazing-fast Postman alternative crafted in Rust with a minimalist UI.</b>
 </p>
 
 <p align="center">
@@ -37,7 +37,7 @@ Reqcraft combines the security and speed of a compiled Rust backend with the rea
 
 ```mermaid
 flowchart TB
-    subgraph UI["Zed-Themed Frontend (React 19 + TypeScript + Vite)"]
+    subgraph UI["Frontend (React 19 + TypeScript + Vite)"]
         Palette["Command Palette (Cmd+K / Ctrl+P)"]
         Omnibar["Omnibar & URL Interpolator ({{baseUrl}})"]
         Tabs["Request Workbench (Params, Headers, Auth, Body)"]
