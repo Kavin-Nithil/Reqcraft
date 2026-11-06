@@ -1,0 +1,53 @@
+@import "tailwindcss";
+
+@layer base {
+  :root {
+    --zed-bg: #0e1013;
+    --zed-sidebar: #13161b;
+    --zed-surface: #181b21;
+    --zed-surface-hover: #1f232b;
+    --zed-surface-active: #262b35;
+    --zed-border: #232730;
+    --zed-border-light: #2e3440;
+    --zed-text-primary: #e6e9ee;
+    --zed-text-secondary: #9098a5;
+    --zed-text-muted: #626a79;
+    --zed-accent: #3b82f6;
+  }
+
+  body {
+    background-color: var(--zed-bg);
+    color: var(--zed-text-primary);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    user-select: none;
+    overflow: hidden;
+    height: 100vh;
+    width: 100vw;
+    margin: 0;
+    padding: 0;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  code, pre, .font-mono {
+    font-family: "JetBrains Mono", "Fira Code", "Cascadia Code", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  }
+}
+
+/* Custom Scrollbars matching Zed */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #252a34;
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #363d4a;
+}
