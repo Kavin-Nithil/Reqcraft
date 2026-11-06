@@ -5,7 +5,8 @@ pub mod storage;
 use curl::{generate_curl, parse_curl};
 use http::{execute_request, HttpRequestPayload, HttpResponsePayload};
 use storage::{
-    load_workspace, parse_postman_collection, save_workspace, Collection, WorkspaceData,
+    export_postman_collection as export_postman, load_workspace, parse_postman_collection,
+    save_workspace, Collection, WorkspaceData,
 };
 
 #[tauri::command]
@@ -38,6 +39,11 @@ fn import_postman_collection(content: String) -> Result<Collection, String> {
     parse_postman_collection(&content)
 }
 
+#[tauri::command]
+fn export_postman_collection(collection: Collection) -> Result<String, String> {
+    export_postman(&collection)
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -48,7 +54,8 @@ pub fn run() {
             generate_curl_command,
             load_workspace_data,
             save_workspace_data,
-            import_postman_collection
+            import_postman_collection,
+            export_postman_collection
         ])
         .run(tauri::generate_context!())
         .expect("error while running Reqcraft application");

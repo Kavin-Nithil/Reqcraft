@@ -9,7 +9,7 @@ export const CommandPalette: React.FC = () => {
     collections,
     history,
     loadSavedRequest,
-    setRequest,
+    openNewTab,
   } = useStore();
 
   const [query, setQuery] = React.useState("");
@@ -82,10 +82,7 @@ export const CommandPalette: React.FC = () => {
         subtitle: `History • ${h.executed_at.substring(11, 19)}`,
         method: h.request.method,
         action: () => {
-          setRequest(() => ({ ...h.request }));
-          if (h.response) {
-            useStore.setState({ response: h.response });
-          }
+          openNewTab(h.request, `History (${h.request.method})`);
           setCommandPaletteOpen(false);
         },
       });

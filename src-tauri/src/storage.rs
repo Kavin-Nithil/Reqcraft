@@ -386,3 +386,258 @@ fn flatten_postman_items(
         }
     }
 }
+
+#[derive(Debug, Serialize)]
+pub struct PostmanExportCollection {
+    pub info: PostmanExportInfo,
+    pub item: Vec<PostmanExportItem>,
+}
+
+#[derive(Debug, Serialize)]
+pub struct PostmanExportInfo {
+    #[serde(rename = "_postman_id")]
+    pub id: String,
+    pub name: String,
+    pub description: String,
+    pub schema: String,
+}
+
+#[derive(Debug, Serialize)]
+pub struct PostmanExportItem {
+    pub name: String,
+    pub request: PostmanExportRequest,
+    #[serde(default)]
+    pub response: Vec<serde_json::Value>,
+}
+
+#[derive(Debug, Serialize)]
+pub struct PostmanExportRequest {
+    pub method: String,
+    pub header: Vec<PostmanExportHeader>,
+    pub url: PostmanExportUrl,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub body: Option<PostmanExportBody>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub auth: Option<PostmanExportAuth>,
+}
+
+#[derive(Debug, Serialize)]
+pub struct PostmanExportHeader {
+    pub key: String,
+    pub value: String,
+    pub r#type: String,
+    #[serde(skip_serializing_if = "std::ops::Not::not")]
+    pub disabled: bool,
+}
+
+#[derive(Debug, Serialize)]
+pub struct PostmanExportUrl {
+    pub raw: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub protocol: Option<String>,
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    pub host: Vec<String>,
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    pub path: Vec<String>,
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    pub query: Vec<PostmanExportQuery>,
+}
+
+#[derive(Debug, Serialize)]
+pub struct PostmanExportQuery {
+    pub key: String,
+    pub value: String,
+    #[serde(skip_serializing_if = "std::ops::Not::not")]
+    pub disabled: bool,
+}
+
+#[derive(Debug, Serialize)]
+pub struct PostmanExportBody {
+    pub mode: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub raw: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub options: Option<serde_json::Value>,
+}
+
+#[derive(Debug, Serialize)]
+pub struct PostmanExportAuth {
+    pub r#type: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub bearer: Option<Vec<PostmanAuthParamExport>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub basic: Option<Vec<PostmanAuthParamExport>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub apikey: Option<Vec<PostmanAuthParamExport>>,
+}
+
+#[derive(Debug, Serialize)]
+pub struct PostmanAuthParamExport {
+    pub key: String,
+    pub value: String,
+    pub r#type: String,
+}
+
+pub fn export_postman_collection(col: &Collection) -> Result<String, String> {
+    let mut items = Vec::new();
+
+    for req in &col.requests {
+        let headers: Vec<PostmanExportHeader> = req
+            .request
+            .headers
+            .iter()
+            .map(|h| PostmanExportHeader {
+                key: h.key.clone(),
+                value: h.value.clone(),
+                r#type: "text".to_string(),
+                disabled: !h.enabled,
+            })
+            .collect();
+
+        let queries: Vec<PostmanExportQuery> = req
+            .request
+            .query_params
+            .iter()
+            .map(|q| PostmanExportQuery {
+                key: q.key.clone(),
+                value: q.value.clone(),
+                disabled: !q.enabled,
+            })
+            .collect();
+
+        let (protocol, host, path) = if let Ok(parsed) = url::Url::parse(&req.request.url) {
+            let proto = Some(parsed.scheme().to_string());
+            let h = parsed
+                .host_str()
+                .map(|s| s.split('.').map(|x| x.to_string()).collect())
+                .unwrap_or_default();
+            let p = parsed
+                .path_segments()
+                .map(|segs| {
+                    segs.filter(|s| !s.is_empty())
+                        .map(|x| x.to_string())
+                        .collect()
+                })
+                .unwrap_or_default();
+            (proto, h, p)
+        } else {
+            (None, Vec::new(), Vec::new())
+        };
+
+        let body = match req.request.body_type.as_str() {
+            "json" => Some(PostmanExportBody {
+                mode: "raw".to_string(),
+                raw: req.request.body.clone(),
+                options: Some(serde_json::json!({
+                    "raw": {
+                        "language": "json"
+                    }
+                })),
+            }),
+            "raw" => Some(PostmanExportBody {
+                mode: "raw".to_string(),
+                raw: req.request.body.clone(),
+                options: Some(serde_json::json!({
+                    "raw": {
+                        "language": "text"
+                    }
+                })),
+            }),
+            "x-www-form-urlencoded" => Some(PostmanExportBody {
+                mode: "urlencoded".to_string(),
+                raw: req.request.body.clone(),
+                options: None,
+            }),
+            _ => None,
+        };
+
+        let auth = match &req.request.auth {
+            AuthConfig::Bearer { token } => Some(PostmanExportAuth {
+                r#type: "bearer".to_string(),
+                bearer: Some(vec![PostmanAuthParamExport {
+                    key: "token".to_string(),
+                    value: token.clone(),
+                    r#type: "string".to_string(),
+                }]),
+                basic: None,
+                apikey: None,
+            }),
+            AuthConfig::Basic { username, password } => Some(PostmanExportAuth {
+                r#type: "basic".to_string(),
+                bearer: None,
+                basic: Some(vec![
+                    PostmanAuthParamExport {
+                        key: "username".to_string(),
+                        value: username.clone(),
+                        r#type: "string".to_string(),
+                    },
+                    PostmanAuthParamExport {
+                        key: "password".to_string(),
+                        value: password.clone(),
+                        r#type: "string".to_string(),
+                    },
+                ]),
+                apikey: None,
+            }),
+            AuthConfig::ApiKey {
+                key,
+                value,
+                add_to,
+            } => Some(PostmanExportAuth {
+                r#type: "apikey".to_string(),
+                bearer: None,
+                basic: None,
+                apikey: Some(vec![
+                    PostmanAuthParamExport {
+                        key: "key".to_string(),
+                        value: key.clone(),
+                        r#type: "string".to_string(),
+                    },
+                    PostmanAuthParamExport {
+                        key: "value".to_string(),
+                        value: value.clone(),
+                        r#type: "string".to_string(),
+                    },
+                    PostmanAuthParamExport {
+                        key: "in".to_string(),
+                        value: add_to.clone(),
+                        r#type: "string".to_string(),
+                    },
+                ]),
+            }),
+            AuthConfig::None => None,
+        };
+
+        items.push(PostmanExportItem {
+            name: req.name.clone(),
+            request: PostmanExportRequest {
+                method: req.request.method.clone(),
+                header: headers,
+                url: PostmanExportUrl {
+                    raw: req.request.url.clone(),
+                    protocol,
+                    host,
+                    path,
+                    query: queries,
+                },
+                body,
+                auth,
+            },
+            response: Vec::new(),
+        });
+    }
+
+    let export_col = PostmanExportCollection {
+        info: PostmanExportInfo {
+            id: col.id.clone(),
+            name: col.name.clone(),
+            description: col.description.clone(),
+            schema: "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+                .to_string(),
+        },
+        item: items,
+    };
+
+    serde_json::to_string_pretty(&export_col)
+        .map_err(|e| format!("Failed to serialize Postman collection: {}", e))
+}
