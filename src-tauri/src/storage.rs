@@ -1,7 +1,7 @@
 use crate::http::{AuthConfig, HttpRequestPayload, HttpResponsePayload, KeyValue};
 use serde::{Deserialize, Serialize};
 use std::fs;
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SavedRequest {
@@ -51,7 +51,7 @@ pub struct WorkspaceData {
 
 fn get_storage_dir() -> PathBuf {
     // Prefer user home ~/.reqcraft, fallback to ./.reqcraft
-    if let Some(home) = dirs_next().or_else(std::env::var_os("HOME").map(PathBuf::from)) {
+    if let Some(home) = dirs_next().or_else(|| std::env::var_os("HOME").map(PathBuf::from)) {
         home.join(".reqcraft")
     } else {
         PathBuf::from(".reqcraft")

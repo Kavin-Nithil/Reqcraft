@@ -1,5 +1,4 @@
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
 use std::time::Instant;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -99,13 +98,13 @@ pub async fn execute_request(req: HttpRequestPayload) -> Result<HttpResponsePayl
 
         // Handle ApiKey auth when added to query
         if let AuthConfig::ApiKey {
-            key,
-            value,
+            ref key,
+            ref value,
             ref add_to,
         } = req.auth
         {
             if add_to == "query" && !key.trim().is_empty() {
-                query_pairs.append_pair(&key, &value);
+                query_pairs.append_pair(key, value);
             }
         }
     }
@@ -149,7 +148,7 @@ pub async fn execute_request(req: HttpRequestPayload) -> Result<HttpResponsePayl
     }
 
     // Apply Authentication
-    match req.auth {
+    match &req.auth {
         AuthConfig::Bearer { token } => {
             if !token.trim().is_empty() {
                 request_builder = request_builder.bearer_auth(token);
